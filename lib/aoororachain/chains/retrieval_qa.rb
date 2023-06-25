@@ -21,7 +21,7 @@ module Aoororachain
 
         if success
           completion = {
-            response:,
+            response: response,
             sources: context.map(&:metadata)
           }
         else

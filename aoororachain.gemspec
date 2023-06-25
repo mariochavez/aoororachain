@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # Uncomment to register a new dependency of your gem
-  spec.add_dependency "chroma-db", "~> 0.5.0"
+  spec.add_dependency "chroma-db", "~> 0.6.0"
   spec.add_dependency "pdf-reader", "~> 2.11"
   spec.add_dependency "llm_client", "~> 0.1.2"
 
