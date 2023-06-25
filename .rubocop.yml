@@ -1,1 +1,7 @@
-/Users/mariochavez/Development/neovim-files/.rubocop.yml
+require: standard
+
+inherit_gem:
+  standard: config/base.yml
+
+AllCops:
+  TargetRubyVersion: 3.2
