@@ -4,6 +4,7 @@ require "uri"
 require "json"
 require "logger"
 require "forwardable"
+require "open3"
 require "tempfile"
 
 require_relative "aoororachain/version"
