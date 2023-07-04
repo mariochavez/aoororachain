@@ -12,9 +12,7 @@ module Aoororachain
         @device = options.delete(:device) || "cpu"
 
         Aoororachain::Util.log_info("Using", data: {model: @model, device: @device})
-        Aoororachain::Util.log_info("This embedding calls Python code using system call. First time initialization might take long due to Python dependencies installation.")
-
-        install_python_dependencies
+        Aoororachain::Util.log_info("This embedding calls Python code using system call.")
       end
 
       def embed_documents(documents, include_metadata: false)
@@ -150,18 +148,6 @@ module Aoororachain
         Aoororachain::Util.log_debug("Texts saved to #{file_path}.")
 
         file_path
-      end
-
-      def install_python_dependencies
-        stdout_data, stderr_data, exit_code = run_system("pip -q install langchain sentence_transformers InstructorEmbedding")
-
-        if exit_code != 0
-          Aoororachain.log_error("Failed to install Python dependencies: #{stderr_data}")
-          return false
-        end
-
-        Aoororachain::Util.log_debug("Python installed dependencies: #{stdout_data}")
-        true
       end
     end
   end
