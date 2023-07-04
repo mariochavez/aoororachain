@@ -84,37 +84,37 @@ The process looks like the following: 
 This is an example of one of the 9,747 text files:
 
 ```ruby
-    Object Array
-    Method collect
-    Method type instance_method
-    Call sequence ["array.map {|element| ... } -> new_array\narray.map -> new_enumerator"]
-    Source code 3.2:ruby-3.2.0/array.c:3825
+Object Array
+Method collect
+Method type instance_method
+Call sequence ["array.map {|element| ... } -> new_array\narray.map -> new_enumerator"]
+Source code 3.2:ruby-3.2.0/array.c:3825
 
-    Calls the block, if given, with each element of self; returns a new Array whose elements are the return values from the block:
+Calls the block, if given, with each element of self; returns a new Array whose elements are the return values from the block:
 
-    a = [:foo, 'bar', 2]
-    a1 = a.map {|element| element.class }
-    a1 # => [Symbol, String, Integer]
+a = [:foo, 'bar', 2]
+a1 = a.map {|element| element.class }
+a1 # => [Symbol, String, Integer]
 
-    Returns a new Enumerator if no block given:
-    a = [:foo, 'bar', 2]
-    a1 = a.map
-    a1 # => #
+Returns a new Enumerator if no block given:
+a = [:foo, 'bar', 2]
+a1 = a.map
+a1 # => #
 
-    Array#collect is an alias for Array#map.
-    Examples static VALUE
-    rb_ary_collect(VALUE ary)
-    {
-        long i;
-        VALUE collect;
+Array#collect is an alias for Array#map.
+Examples static VALUE
+rb_ary_collect(VALUE ary)
+{
+long i;
+VALUE collect;
 
-        RETURN_SIZED_ENUMERATOR(ary, 0, 0, ary_enum_length);
-        collect = rb_ary_new2(RARRAY_LEN(ary));
-        for (i = 0; i < RARRAY_LEN(ary); i++) {
-            rb_ary_push(collect, rb_yield(RARRAY_AREF(ary, i)));
-        }
-        return collect;
-    }
+RETURN_SIZED_ENUMERATOR(ary, 0, 0, ary_enum_length);
+collect = rb_ary_new2(RARRAY_LEN(ary));
+for (i = 0; i < RARRAY_LEN(ary); i++) {
+  rb_ary_push(collect, rb_yield(RARRAY_AREF(ary, i)));
+}
+return collect;
+}
 ```
 
 2. Chunk texts into meaningful blocks.
@@ -126,82 +126,83 @@ Aoororachain uses the Chroma vector database to store and query embeddings.
 Here is an example for loading and creating the embeddings. 
 
 ```ruby
-    require "aoororachain"
+require "aoororachain"
 
-    # Setup logger.
-    Aoororachain.logger = Logger.new($stdout)
-    Aoororachain.log_level = Aoororachain::LEVEL_DEBUG
+# Setup logger.
+Aoororachain.logger = Logger.new($stdout)
+Aoororachain.log_level = Aoororachain::LEVEL_DEBUG
 
-    chroma_host = "http://localhost:8000"
-    collection_name = "ruby-documentation"
+chroma_host = "http://localhost:8000"
+collection_name = "ruby-documentation"
 
-    # You can define a custom Parser to clean data and maybe extract metadata.
-    # Here is the code of RubyDocParser that does exactly that.
-    class RubyDocParser
-      def self.parse(text)
-        name_match = text.match(/Name (\w+)/)
-        constant_match = text.match(/Constant (\w+)/)
-        
-        object_match = text.match(/Object (\w+)/)
-        method_match = text.match(/Method ([\w\[\]\+\=\-\*\%\/]+)/)
+# You can define a custom Parser to clean data and maybe extract metadata.
+# Here is the code of RubyDocParser that does exactly that.
+class RubyDocParser
+def self.parse(text)
+name_match = text.match(/Name (\w+)/)
+constant_match = text.match(/Constant (\w+)/)
 
-        metadata = {}
-        metadata[:name] = name_match[1] if name_match
-        metadata[:constant] = constant_match[1] if constant_match
-        metadata[:object] = object_match[1] if object_match
-        metadata[:method] = method_match[1] if method_match
-        metadata[:lang] = :ruby
-        metadata[:version] = "3.2"
-        
-        text.gsub!(/\s+/, " ").strip!
-        [text, metadata]
-      end
-    end
+object_match = text.match(/Object (\w+)/)
+method_match = text.match(/Method ([\w\[\]\+\=\-\*\%\/]+)/)
 
-    # A DirectoryLoader points to a path and sets the glob for the files you want to load. 
-    # A loader is also specified. FileLoader just opens and reads the file content. 
-    # The RubyDocParser is set as well. This is optional in case you data is very nice and needs no pre-processing.
-    directory_loader = Aoororachain::Loaders::DirectoryLoader.new(path: "./ruby-docs", glob: "**/*.txt", loader: Aoororachain::Loaders::FileLoader, parser: RubyDocParser)
-    files = directory_loader.load
+metadata = {}
+metadata[:name] = name_match[1] if name_match
+metadata[:constant] = constant_match[1] if constant_match
+metadata[:object] = object_match[1] if object_match
+metadata[:method] = method_match[1] if method_match
+metadata[:lang] = :ruby
+metadata[:version] = "3.2"
 
-    # With your data clean and ready, now it is time to chunk it. The chunk size depends of the context size of the LLMs that you want to use.
-    # 512 is a good number to start, don't go lower than that. An overlap can also be specified.
-    text_splitter = Aoororachain::RecursiveTextSplitter.new(size: 512, overlap: 0)
+text.gsub!(/\s+/, " ").strip!
+[text, metadata]
+end
+end
 
-    texts = []
-    files.each do |file|
-      texts.concat(text_splitter.split_documents(file))
-    end
+# A DirectoryLoader points to a path and sets the glob for the files you want to load. 
+# A loader is also specified. FileLoader just opens and reads the file content. 
+# The RubyDocParser is set as well. This is optional in case you data is very nice and needs no pre-processing.
+directory_loader = Aoororachain::Loaders::DirectoryLoader.new(path: "./ruby-docs", glob: "**/*.txt", loader: Aoororachain::Loaders::FileLoader, parser: RubyDocParser)
+files = directory_loader.load
 
-    # The final step is to create and store the embeddings.
-    # First, select an embedding model
-    model = Aoororachain::Embeddings::LocalPythonEmbedding::MODEL_INSTRUCTOR_L
-    # Create an instance of the embedder. device is optional. Possible options are:
-    # - cuda. If you have an external GPU
-    # - mps. If you have an Apple Sillicon chip (M1 to M2).
-    # - cpu or empty. It will use the CPU by default.
-    embedder = Aoororachain::Embeddings::LocalPythonEmbedding.new(model:, device: "mps")
-    # Configure your Vector database.
-    vector_database = Aoororachain::VectorStores::Chroma.new(embedder: embedder, options: {host: chroma_host})
+# With your data clean and ready, now it is time to chunk it. The chunk size depends of the context size of the LLMs that you want to use.
+# 512 is a good number to start, don't go lower than that. An overlap can also be specified.
+text_splitter = Aoororachain::RecursiveTextSplitter.new(size: 512, overlap: 0)
 
-    # Embbed your files. This can take a few minutes up to hours, depending on the size of your documents and the model used.
-    vector_database.from_documents(texts, index: collection_name)
+texts = []
+files.each do |file|
+texts.concat(text_splitter.split_documents(file))
+end
+
+# The final step is to create and store the embeddings.
+# First, select an embedding model
+model = Aoororachain::Embeddings::LocalPythonEmbedding::MODEL_INSTRUCTOR_L
+# Create an instance of the embedder. device is optional. Possible options are:
+# - cuda. If you have an external GPU
+# - mps. If you have an Apple Sillicon chip (M1 to M2).
+# - cpu or empty. It will use the CPU by default.
+embedder = Aoororachain::Embeddings::LocalPythonEmbedding.new(model:, device: "mps")
+# Configure your Vector database.
+vector_database = Aoororachain::VectorStores::Chroma.new(embedder: embedder, options: {host: chroma_host})
+
+# Embbed your files. This can take a few minutes up to hours, depending on the size of your documents and the model used.
+vector_database.from_documents(texts, index: collection_name)
 ```
 
 With embedding loaded in the database, you can use a tool like Chroma UI -**not yet released** - to query documents.
+![chroma-ui](https://github.com/mariochavez/aoororachain/assets/59967/d65dea13-c6ef-452a-9774-8cf3b47c048f)
 
 But it is more useful to query with Aoororachain.
 
 ```ruby
-    # Define a retriever for the Vector database.
-    retriever = Aoororachain::VectorStores::Retriever.new(vector_database)
+# Define a retriever for the Vector database.
+retriever = Aoororachain::VectorStores::Retriever.new(vector_database)
 
-    # Query documents, results by default is 3.
-    documents = retriever.search("how can I use the Data class?", results: 4)
+# Query documents, results by default is 3.
+documents = retriever.search("how can I use the Data class?", results: 4)
 
-    # Print retrieved documents and their similarity distance from the question.
-    puts documents.map(&:document).join(" ")
-    puts documents.map(&:distance)
+# Print retrieved documents and their similarity distance from the question.
+puts documents.map(&:document).join(" ")
+puts documents.map(&:distance)
 ```
 
 ### Query LLM with context.
@@ -209,33 +210,33 @@ But it is more useful to query with Aoororachain.
 With embeddings ready, it is time to create a _chain_ to perform QA Retrieval using the embedded documents as context.
 
 ```ruby
-    require "aoororachain"
+require "aoororachain"
 
-    # Setup logger.
-    Aoororachain.logger = Logger.new($stdout)
-    Aoororachain.log_level = Aoororachain::LEVEL_DEBUG
+# Setup logger.
+Aoororachain.logger = Logger.new($stdout)
+Aoororachain.log_level = Aoororachain::LEVEL_DEBUG
 
-    llm_host = "http://localhost:9292"
-    chroma_host = "http://localhost:8000"
-    collection_name = "ruby-documentation"
+llm_host = "http://localhost:9292"
+chroma_host = "http://localhost:8000"
+collection_name = "ruby-documentation"
 
-    model = Aoororachain::Embeddings::LocalPythonEmbedding::MODEL_INSTRUCTOR_L
-    embedder = Aoororachain::Embeddings::LocalPythonEmbedding.new(model:, device: "mps")
-    vector_database = Aoororachain::VectorStores::Chroma.new(embedder: embedder, options: {host: chroma_host, log_level: Chroma::LEVEL_DEBUG})
-    vector_database.from_index(collection_name)
+model = Aoororachain::Embeddings::LocalPythonEmbedding::MODEL_INSTRUCTOR_L
+embedder = Aoororachain::Embeddings::LocalPythonEmbedding.new(model:, device: "mps")
+vector_database = Aoororachain::VectorStores::Chroma.new(embedder: embedder, options: {host: chroma_host, log_level: Chroma::LEVEL_DEBUG})
+vector_database.from_index(collection_name)
 
-    retriever = Aoororachain::VectorStores::Retriever.new(vector_database)
+retriever = Aoororachain::VectorStores::Retriever.new(vector_database)
 
-    # Configure the LLM Server
-    llm = Aoororachain::Llms::LlamaServer.new(llm_host)
+# Configure the LLM Server
+llm = Aoororachain::Llms::LlamaServer.new(llm_host)
 
-    # Create the chain to connect the Vector database retriever with the LLM.
-    chain = Aoororachain::Chains::RetrievalQA.new(llm, retriever)
+# Create the chain to connect the Vector database retriever with the LLM.
+chain = Aoororachain::Chains::RetrievalQA.new(llm, retriever)
 
-    # Create a template for the LLM. Aoororachain does not include any templates because these are model specific. The following template is for the Vicuna model.
-    template = "A conversation between a human and an AI assistant. The assistant respond to a question using the context. Context: ===%{context}===. Question: %{prompt}"
+# Create a template for the LLM. Aoororachain does not include any templates because these are model specific. The following template is for the Vicuna model.
+template = "A conversation between a human and an AI assistant. The assistant responds to a question using the context. Context: ===%{context}===. Question: %{prompt}"
 
-    response = chain.complete(prompt: "how can I use the Data class to define a new class?", prompt_template: template)
+response = chain.complete(prompt: "how can I use the Data class to define a new class?", prompt_template: template)
 ```
 
 ## Contributing
