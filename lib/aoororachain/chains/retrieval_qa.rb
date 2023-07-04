@@ -9,15 +9,12 @@ module Aoororachain
         @type = type
       end
 
-      def complete(prompt:)
+      def complete(prompt:, prompt_template:)
         context = @retriever.search(prompt)
 
-        system_prompt = "Una conversación entre un humano y un asistente de inteligencia artificial. El asistente response usando el contexto la pregunta. Si no sabes la respuesta, simplemente di que no sabes, no trates de inventar una."
-        context_prompt = "Contexto: #{context.map(&:document).join(" ").tr("\n", " ")}"
-        question_prompt = "Pregunta: #{prompt}"
+        stuff_prompt = prompt_template % {context: context.map(&:document).join(" ").tr("\n", " "), prompt:}
 
-        stuff_prompt = [system_prompt, context_prompt, question_prompt]
-        success, response = @llm.complete(prompt: stuff_prompt.join(". "))
+        success, response = @llm.complete(prompt: stuff_prompt)
 
         if success
           completion = {
