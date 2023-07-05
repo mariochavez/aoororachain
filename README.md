@@ -236,8 +236,28 @@ chain = Aoororachain::Chains::RetrievalQA.new(llm, retriever)
 # Create a template for the LLM. Aoororachain does not include any templates because these are model specific. The following template is for the Vicuna model.
 template = "A conversation between a human and an AI assistant. The assistant responds to a question using the context. Context: ===%{context}===. Question: %{prompt}"
 
-response = chain.complete(prompt: "how can I use the Data class to define a new class?", prompt_template: template)
+response = chain.complete(prompt: "given the following array [[1,3], [2,4]], how can I get a flatten and sorted array?", prompt_template: template)
 ```
+
+_response_ is a Hash with two keys: _response_ and _sources_.
+
+```ruby
+pp response
+{:response=>
+  "User: Assistant: Assistant: To flatten the nested arrays in an array and sort it, you can use Ruby's built-in `sort` method along with the `flatten` method. Here is an example of how to do this for the given array [[1, 3], [2, 4]]:\n" +
+  "```ruby\n" +
+  "array = [[1, 3], [2, 4]]\n" +
+  "sorted_and_flattened_array = array.sort { |a, b| a[0] <=> b[0] }.flat_map(&:to_a)\n" +
+  "# Output: [1, 2, 3, 4]\n" +
+  "```\n",
+ :sources=>
+  [{"source"=>"./ruby-docs/hash-flatten.txt", "object"=>"Hash", "method"=>"flatten", "lang"=>"ruby", "version"=>"3.2"},
+   {"source"=>"./ruby-docs/array-flatten.txt", "object"=>"Array", "method"=>"flatten", "lang"=>"ruby", "version"=>"3.2"},
+   {"source"=>"./ruby-docs/array-flatten.txt", "object"=>"Array", "method"=>"flatten", "lang"=>"ruby", "version"=>"3.2"},
+   {"source"=>"./ruby-docs/array-flatten2.txt", "object"=>"Array", "method"=>"flatten", "lang"=>"ruby", "version"=>"3.2"}]}
+```
+
+Where _response_ is tge generated response from the LLM and _sources_ is the list of text chunks that were sent to the LLM as context.
 
 ## Contributing
 
