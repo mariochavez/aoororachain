@@ -191,7 +191,7 @@ vector_database.from_documents(texts, index: collection_name)
 With embedding loaded in the database, you can use a tool like Chroma UI -**not yet released** - to query documents.
 ![chroma-ui](https://github.com/mariochavez/aoororachain/assets/59967/d65dea13-c6ef-452a-9774-8cf3b47c048f)
 
-But it is more useful to query with Aoororachain.
+Now you can query your embeddings with Aoororachain.
 
 ```ruby
 # Define a retriever for the Vector database.
