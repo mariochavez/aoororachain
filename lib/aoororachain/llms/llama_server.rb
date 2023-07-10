@@ -14,7 +14,7 @@ module Aoororachain
       def complete(prompt:)
         result = LlmClient.completion(prompt)
 
-        [result.success?, result.success? ? result.success.body["response"].gsub(/Usuario:.*Asistente:/, "") : result.failure.body]
+        [result.success?, result.success? ? result.success.body : result.failure.body]
       end
     end
   end
